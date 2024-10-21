@@ -27,6 +27,12 @@ function App() {
   return (
     <div className="dark:bg-gray-500">
 
+      {/* implement 
+      1) multiple payment for sales & expenses
+      2) implement due payments for expenses
+      3) TANSTACK query
+      4) MOve to REMIX */}
+
       <SiteHeader session={session} />
       <div className="mt-2">
         {/* <pre>{JSON.stringify(session?.user.user_metadata)}</pre> */}

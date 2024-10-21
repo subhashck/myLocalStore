@@ -19,9 +19,10 @@ import { useEffect, useState } from "react"
 import supabase from "@/utils/supabase"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
-import { TrashIcon } from "lucide-react"
-import { useParams } from "react-router-dom"
+import { LoaderIcon, TrashIcon } from "lucide-react"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from "@/components/ui/breadcrumb"
 
 const formSchema = z.object({
     id: z.coerce.number().gt(0).optional(),
@@ -45,15 +46,27 @@ function ItemScreen({ mode }: { mode?: string }) {
     let { itemId } = useParams();
 
     const [categories, setCategories] = useState<TCategoryList[]>()
-
     const [deleteUnits, setDeleteUnits] = useState<number[]>([-1])
+    const [loading, setLoading] = useState(mode === 'edit' ? true : false)
 
     const getCategories = async () => {
-        const { data } = await supabase
+        // await sleep(10000)
+        const { data, error } = await supabase
             .from('itemCategories')
             .select('id, categoryName')
         // .eq('id', '')
-        data && setCategories(data)
+        if (data) {
+            setCategories(data)
+            if (mode === 'edit') setLoading(false)
+        }
+        else {
+            setLoading(false)
+            toast({
+                variant: 'destructive',
+                description: 'Error fetching from Database: ' + error.message
+            })
+            // throw Error("Unable to set Categories: " +  error)
+        }
     }
 
     //get item from id for VIEW & EDIT modes
@@ -65,7 +78,11 @@ function ItemScreen({ mode }: { mode?: string }) {
             .single()
 
         if (error) {
-            console.error('Error while fetching item ', error)
+            setLoading(false)
+            toast({
+                variant: 'destructive',
+                description: 'Error fetching from Database: ' + error.message
+            })
             return
         }
         // console.info(data)
@@ -84,11 +101,17 @@ function ItemScreen({ mode }: { mode?: string }) {
             .eq('itemId', itemId)
 
         if (error) {
-            console.error('Error while fethching item units ', error)
+            setLoading(false)
+            toast({
+                variant: 'destructive',
+                description: 'Error fetching from Database: ' + error.message
+            })
             return
         }
         // console.info(data)
         if (data.length > 0) form.setValue('units', data)
+
+        setLoading(false)
     }
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -98,7 +121,7 @@ function ItemScreen({ mode }: { mode?: string }) {
             forSale: false,
             forStock: false,
             units: [{
-                unitName: 'pcs',
+                unitName: 'PCS',
                 factor: 1,
                 costPrice: 0,
                 salePrice: 0
@@ -120,7 +143,7 @@ function ItemScreen({ mode }: { mode?: string }) {
             const units = form.getValues('units')
             const id = units[index].id
             if (id) listDelete.push(id)
-            console.log('to delete', id)
+            // console.log('to delete', id)
             setDeleteUnits(listDelete)
         }
         remove(index)
@@ -130,12 +153,14 @@ function ItemScreen({ mode }: { mode?: string }) {
 
     // submit handler.
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-
+        // await sleep(10000)
         // console.log(values)
         const { id, itemName, categoryId, forStock, forSale, units } = values
 
+        const itemUpper = itemName.toUpperCase()
+
         const record = {
-            itemName, categoryId, forStock,
+            itemName: itemUpper, categoryId, forStock,
             forSale
         }
 
@@ -169,7 +194,7 @@ function ItemScreen({ mode }: { mode?: string }) {
                     toUpdate.push({
                         id: element.id,
                         itemId: data.id,
-                        unitName: element.unitName,
+                        unitName: element.unitName.toUpperCase(),
                         factor: element.factor,
                         costPrice: element.costPrice,
                         salePrice: element.salePrice
@@ -177,7 +202,7 @@ function ItemScreen({ mode }: { mode?: string }) {
                 } else {
                     toInsert.push({
                         itemId: data.id,
-                        unitName: element.unitName,
+                        unitName: element.unitName.toUpperCase(),
                         factor: element.factor,
                         costPrice: element.costPrice,
                         salePrice: element.salePrice
@@ -201,44 +226,108 @@ function ItemScreen({ mode }: { mode?: string }) {
                 .in('id', deleteUnits)
             if (del.error) {
                 console.error('Error while deleting units ', del.error)
+                toast({
+                    variant: "destructive",
+                    title: 'Error',
+                    description: 'Error while deleting units: ' + del.error.message
+                })
                 return
             }
 
             if (updateUnits.error) {
                 console.error('Error while updating units ', updateUnits.error)
+                toast({
+                    variant: "destructive",
+                    title: 'Error',
+                    description: 'Error while updating units: ' + updateUnits.error.message
+                })
                 return
             }
             if (insertUnits.error) {
                 console.error('Error while saving creating units  ', insertUnits.error)
+                toast({
+                    variant: "destructive",
+                    title: 'Error',
+                    description: 'Error while creating units: ' + insertUnits.error.message
+                })
                 if (!mode) {
                     const deleteItem = await supabase
                         .from('items')
                         .delete()
                         .eq('id', data.id)
-                    console.error('Error while rolling back item ', deleteItem.error)
+                    if (deleteItem.error) {
+                        console.error('Error while rolling back item ', deleteItem.error)
+                        toast({
+                            variant: "destructive",
+                            title: 'Error',
+                            description: 'Error while rolling back item: ' + deleteItem?.error.message
+                        })
+                        return
+                    }
                 }
                 return
             }
         }
+        navigate("/items")
         toast({
             description: "Item saved successfully..",
         })
     }
 
+    //hooks
     const { toast } = useToast()
+    const navigate = useNavigate();
+
+    const onLoad = async() => {
+        setLoading(true)
+        await getCategories()
+        if (mode === 'edit') {
+            await getSingleItem()
+            await getItemUnits()
+        }
+        setLoading(false)
+    }
 
     useEffect(() => {
-        getCategories()
-        if (mode === 'edit') {
-            getSingleItem()
-            getItemUnits()
-        }
+        onLoad()
         // else if (!mode) form.setValue('categoryId',"")
     }, [])
 
+    if(loading){
+        return (<div className="flex flex-col items-center">
+          <LoaderIcon className="animate-spin my-5" />
+          <p className="animate-bounce">Loading data ...</p>
+        </div>)
+      }
+    
     return (
-        <div className="max-w-sm mx-auto">
+        <div className="max-w-sm mx-auto px-1">
 
+            <section className="mb-5">
+                <div className="text-center text-xs">
+                    <Breadcrumb>
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link to="/">Home</Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild>
+                                    <Link to="/items">Items</Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage>{mode ? mode.toUpperCase() : 'New'} Item</BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
+                </div>
+                <div className="text-center text-xl"> {mode ? mode.toUpperCase() : 'Create New'} Item</div>
+            </section>
+            {/* {loading && <LoaderIcon className="animate-spin mx-auto" />} */}
             {/* { JSON.stringify(deleteUnits)}  */}
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col  gap-5 px-2 ">
@@ -249,7 +338,7 @@ function ItemScreen({ mode }: { mode?: string }) {
                             <FormItem>
                                 <FormLabel>Item Name</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Name of Item" {...field} />
+                                    <Input placeholder="Name of Item" {...field} disabled={mode === "edit"}/>
                                 </FormControl>
                                 <FormDescription>
                                     This is your name of your item.
@@ -330,7 +419,7 @@ function ItemScreen({ mode }: { mode?: string }) {
                             </Button>
                         </div>
 
-                        <div className="h-[35vh] overflow-scroll ">
+                        <div className="h-[25vh] overflow-scroll ">
 
                             {fields.map((field, index) => {
                                 return (
@@ -341,7 +430,7 @@ function ItemScreen({ mode }: { mode?: string }) {
                                             render={({ field }) => (
                                                 <FormItem className="col-span-3">
                                                     <FormLabel className={cn(index !== 0 && "sr-only")}>Unit Name</FormLabel>
-                                                    <Input className="text-xs" placeholder="Unit name" {...field} readOnly={index === 0} />
+                                                    <Input className="text-xs" placeholder="Unit name" {...field}  />
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -353,7 +442,7 @@ function ItemScreen({ mode }: { mode?: string }) {
                                                 <FormItem className="col-span-2">
                                                     <FormLabel className={cn(index !== 0 && "sr-only")}> Factor</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" className=" max-w-32" placeholder="Factor of Conversion" {...field} readOnly={index === 0} />
+                                                        <Input type="number" className=" max-w-32" placeholder="Factor of Conversion" {...field}  />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -364,8 +453,8 @@ function ItemScreen({ mode }: { mode?: string }) {
                                             control={form.control}
                                             name={`units.${index}.costPrice`}
                                             render={({ field }) => (
-                                                <FormItem className="col-span-2">
-                                                    <FormLabel className={cn(index !== 0 && "sr-only")}>Cost Price</FormLabel>
+                                                <FormItem className="col-span-2 ">
+                                                    <FormLabel className={cn(index !== 0 && "sr-only")}>Cost</FormLabel>
                                                     <FormControl>
                                                         <Input type="number" className="max-w-32" placeholder="Cost Price" {...field} />
                                                     </FormControl>
@@ -392,7 +481,7 @@ function ItemScreen({ mode }: { mode?: string }) {
                                             {(index !== 0) && <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="text-red-900"
+                                                className="text-red-700"
                                                 onClick={() => deleteUnit(index)}
                                             >
                                                 <TrashIcon />
@@ -403,9 +492,14 @@ function ItemScreen({ mode }: { mode?: string }) {
                             })}
                         </div>
                     </div>
-                    <Button type="submit" disabled={isSubmitting}>Save</Button>
-                    <Button type="button" variant="ghost" onClick={() =>
+                    <Button type="submit" className="bg-green-700" disabled={isSubmitting||loading}> {isSubmitting||loading ? <LoaderIcon className="animate-spin"/> : 'Save'}</Button>
+                    <Button type="button" variant="ghost" onClick={() => {
                         form.reset()
+                        if (mode === 'edit') {
+                            getSingleItem()
+                            getItemUnits()
+                        }
+                    }
                     }>Reset</Button>
                 </form>
             </Form>

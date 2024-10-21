@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { Button } from "./ui/button";
 import { Archive, ShoppingBag } from "lucide-react";
 import { TInvoiceItems } from "@/utils/types";
@@ -20,7 +20,7 @@ function CartModal({ cartDetails, deleteSalesItem, updateItem, updateItemUnit, s
     updateItemUnit(index, unitIndex)
   }
   const [open, setOpen] = useState(false);
-  
+
   // console.log('cartDetails: ', cartDetails)
   return (
     <div className="">
@@ -33,14 +33,16 @@ function CartModal({ cartDetails, deleteSalesItem, updateItem, updateItemUnit, s
           </Button>
         </SheetTrigger>
         <SheetContent side="bottom" className="px-2 max-h-[80%] min-h-[40%] overflow-scroll">
-          <div className="grid grid-cols-2 mt-2 items-center gap-10">
-            <h1 className="flex flex-col text-lg text-green-700 p-2 ">Sales Cart</h1>
-            <div>
-              <Button  variant="secondary" onClick={()=>setPaymentMode(true)} className="flex flex-row items-center bg-fuchsia-600 text-white">
+          <SheetHeader>
+            <SheetTitle>Cart</SheetTitle>
+            <SheetDescription>
+              <Button variant="secondary" onClick={() => { setPaymentMode(true); setOpen(false) }} className="flex flex-row items-center bg-fuchsia-600 text-white">
                 Pay
               </Button>
-            </div>
-
+            </SheetDescription>
+          </SheetHeader>
+          <div className="grid grid-cols-2 mt-2 items-center gap-10">
+            <h1 className="flex flex-col text-lg text-green-700 p-2 "></h1>
           </div>
           {cartDetails?.map((item, index) => {
             return (
@@ -49,7 +51,7 @@ function CartModal({ cartDetails, deleteSalesItem, updateItem, updateItemUnit, s
                   <div className="grid grid-cols-6 items-center">
                     <div className="col-span-3 flex flex-row gap-2 items-center text-sm">
                       <div className="col-span-1"> {index + 1} </div>
-                      <div className="col-span-5">{item.item}</div>
+                      <div className="col-span-5">{item.itemName}</div>
                     </div>
                     <div className="col-span-2">
                       <Select onValueChange={(val) => updateUnit(index, val)}>
@@ -60,7 +62,7 @@ function CartModal({ cartDetails, deleteSalesItem, updateItem, updateItemUnit, s
                           {/* @ts-ignore */}
                           {item.units?.map((item, index) => (
                             <SelectItem key={index} value={item.unitName}>
-                              {item.unitName}
+                              {item.unitName.toLowerCase()}
                             </SelectItem>
                           ))
                           }
@@ -75,11 +77,11 @@ function CartModal({ cartDetails, deleteSalesItem, updateItem, updateItemUnit, s
                   </div>
                 </div>
                 <div className="grid grid-cols-8 gap-2 items-center">
-                  <div className="col-span-3 flex flex-row items-center gap-0 mr-2">
+                  <div className="col-span-4 flex flex-row items-center gap-0 mr-2">
                     <Button variant="ghost" onClick={() => updateItem(index, 'Dec')}>-</Button>
                     <Input type="number" value={item.quantity.toString()} readOnly className="text-xs h-6 text-center" onChange={() => { }} />
                     <Button variant="ghost" onClick={() => updateItem(index, 'Inc')}>+</Button>
-                    <span className="text-xs italic text-muted-foreground">{item.unit}</span>
+                    <span className="text-xs italic text-muted-foreground lowercase">{item.unit}</span>
                   </div>
                   <div className="col-span-2 ">
                     <Input type="number" value={item.price.toString()} className="text-xs h-6 text-right" onChange={() => { }} />

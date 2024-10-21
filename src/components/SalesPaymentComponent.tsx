@@ -4,33 +4,40 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
+import supabase from "@/utils/supabase"
 import { TInvoiceItems } from "@/utils/types"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CaretLeftIcon } from "@radix-ui/react-icons"
+import { LoaderIcon } from "lucide-react"
 import { useEffect } from "react"
 import { useForm } from "react-hook-form"
+import { useNavigate } from "react-router-dom"
 import { z } from "zod"
 
-const unitSchema = z.array(z.object({
-  unitName: z.string(),
-  factor: z.number().gte(0),
-  costPrice: z.number().gte(0),
-  salePrice: z.number().gte(0)
-}))
+// const unitSchema = z.array(z.object({
+//   unitName: z.string(),
+//   factor: z.number().gte(0),
+//   costPrice: z.number().gte(0),
+//   salePrice: z.number().gte(0)
+// }))
 
 const cartSchema = z.array(z.object({
-  item: z.string(),
+  itemId: z.number(),
+  itemName: z.string(),
   unit: z.string(),
   quantity: z.number().gt(0),
   price: z.number().gte(0),
   // units: unitSchema
 }))
 
-function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoiceItems[], totalAmount: number }) {
+function SalesPaymentComponent(
+  { cartDetails, totalAmount, setPaymentMode }: 
+  { cartDetails?: TInvoiceItems[], totalAmount: number, setPaymentMode: (paymentMode: boolean) => void }) {
 
   // const [discount, setDiscount] = useState(0)
 
   const { toast } = useToast()
+  const navigate = useNavigate();
 
   const formSchema = z.object({
     isPOS: z.boolean(),
@@ -104,11 +111,85 @@ function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoi
   const { isSubmitting } = form.formState
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log('on-submit', values)
-    toast({
-      description: "Bill saved successfully..",
-    })
-    return
+
+    // console.log('on-submit', values)
+
+    const { customerName, billedAmount, discount,
+      paidUpi, paidCash, cart } = values
+
+    const invoiceDate = new Date()
+
+    const totalPaid = paidUpi + paidCash
+    const payableAmount = billedAmount - discount
+    const status = (payableAmount > totalPaid ? 'DUE' : 'PAID')
+
+    const record = {
+      customer: customerName.toUpperCase(), billedAmount, discount,
+      paidUpi, paidCash, totalPaid, payableAmount, status, invoiceDate
+    }
+
+    const { data, error } = await supabase
+      .from('sales')
+      .insert(record)
+      .select('id')
+      .single()
+
+    // console.log('data: ', data)
+    if (error) {
+      console.error('Error while saving new Sales Invoice: ' + error.message)
+      toast({
+        variant: "destructive",
+        title: 'Error',
+        description: 'Problem while saving new Sales Invoice: ' + error.message
+      })
+      return
+    } else if (data) {
+      let toInsert = [{}]
+      toInsert.splice(0, 1)
+      cart?.forEach(element => {
+        toInsert.push({
+          salesId: data.id,
+          itemId: element.itemId,
+          itemName: element.itemName,
+          price: element.price,
+          quantity: element.quantity,
+          unit: element.unit,
+          amount: element.price * element.quantity
+        })
+      })
+      const insertUnits = await supabase
+        .from('saleDetails')
+        .insert(toInsert)
+
+      if (insertUnits.error) {
+        console.error('Error while saving creating sale details  ', insertUnits.error)
+        toast({
+          variant: "destructive",
+          title: 'Error',
+          description: 'Problem while saving new Sales Invoice: ' + insertUnits.error.message
+        })
+        const deleteItem = await supabase
+          .from('sales')
+          .delete()
+          .eq('id', data.id)
+        if (deleteItem.error) {
+          console.error('Error while rolling back sales ', deleteItem.error)
+          toast({
+            variant: "destructive",
+            title: 'Error',
+            description: 'Problem while saving new Sales Invoice: ' + deleteItem?.error.message
+          })
+          return
+        }
+        return
+      }
+
+      navigate('/sales')
+
+      toast({
+        description: "Bill saved successfully..",
+      })
+    }
   }
 
   const getPayable = () => {
@@ -155,7 +236,7 @@ function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoi
   }, [form.watch('isPOS')])
 
   return (
-    <div className="flex flex-col border px-2">
+    <div className="flex flex-col border px-2 -mx-3">
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} >
@@ -205,10 +286,10 @@ function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoi
           {cartDetails && cartDetails.map((item, index) => {
             return (
               <section className="grid grid-rows-2" key={index}>
-                <div className="text-sm">{index + 1} {item.item}</div>
+                <div className="text-sm">{index + 1} {item.itemName}</div>
                 <div className="grid grid-cols-6 text-sm">
                   <div className="col-span-2"></div>
-                  <div className="col-span-2 font-mono ">{item.quantity} {item.unit}</div>
+                  <div className="col-span-2 font-mono ">{item.quantity} <span className="lowercase italic"> {item.unit}</span></div>
                   <div className="font-mono text-right">{item.price}</div>
                   <div className="font-mono text-right">{item.price * item.quantity}</div>
                 </div>
@@ -255,7 +336,7 @@ function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoi
             <div className="grid grid-cols-2 gap-2 items-center">
               <div>Paid by Cash</div>
               <div className="flex flex-row">
-                <Button size="icon" variant={"destructive"} onClick={() => setPay('paidCash')}>Pay</Button>
+                <Button type="button" size="icon" variant={"destructive"} onClick={() => setPay('paidCash')}>Pay</Button>
                 <FormField
                   control={form.control}
                   name="paidCash"
@@ -274,7 +355,7 @@ function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoi
             <div className="grid grid-cols-2 gap-2 items-center">
               <div>Paid by UPI</div>
               <div className="flex flex-row">
-                <Button size="icon" variant={"destructive"} onClick={() => setPay('paidUpi')}>Pay</Button>
+                <Button type="button" size="icon" variant={"destructive"} onClick={() => setPay('paidUpi')}>Pay</Button>
                 <FormField
                   control={form.control}
                   name="paidUpi"
@@ -312,9 +393,9 @@ function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoi
               )}
             />
             {/* <Button className="w-full" type="submit">Save</Button> */}
-            <Button type="submit" disabled={isSubmitting || cartDetails === undefined} className="bg-green-700">Save</Button>
+            <Button type="submit" disabled={isSubmitting || cartDetails === undefined} className="bg-green-700">{isSubmitting?<LoaderIcon className="animate-spin"/>:'Save'}</Button>
             {/* {form.watch('isPOS') && <Button className="w-full" type="submit" disabled={isSubmitting || cartDetails === undefined}>Mark Due</Button>} */}
-            <Button className="w-full" variant={"link"}><CaretLeftIcon /> Back to Sales</Button>
+            <Button className="w-full" variant={"link"} onClick={() => setPaymentMode(false)}><CaretLeftIcon /> Back to Sales</Button>
           </section>
         </form>
       </Form>
@@ -327,4 +408,4 @@ function SalesPaymentScreen({ cartDetails, totalAmount }: { cartDetails?: TInvoi
     </div >
   )
 }
-export default SalesPaymentScreen
+export default SalesPaymentComponent

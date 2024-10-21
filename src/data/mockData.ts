@@ -1,4 +1,4 @@
-import { TCategoryList, TItems } from "@/utils/types";
+import { TCategoryList, TVendor } from "@/utils/types";
 
 export const categories: TCategoryList[] = [
     { id: 1, categoryName: "Cat" },
@@ -16,125 +16,26 @@ export const categories: TCategoryList[] = [
     { id: 13, categoryName: "Crocodile" }
 ];
 
-export const items: TItems[] = [
+
+export const vendors:TVendor[] = [
     {
-        itemName: 'PaperBoat-Apple',
-        forSale: false,
-        forStock: false,
-        category: 'Fruit Drinks',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 8,
-            salePrice: 10
-        },
-        {
-            unitName: 'Pack of 12',
-            factor: 12,
-            costPrice: 9,
-            salePrice: 100
-        }]
+        vendorName: 'abd',
+        vendorAddress: 'dfsdf',
+        vendorPhone: 0
     },
     {
-        itemName: 'Coca-Cola -100ml',
-        forSale: true,
-        forStock: true,
-        category: 'Fruit Drinks',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 20
-        }]
+        vendorName: 'rty',
+        vendorAddress: 'asas',
+        vendorPhone: 0
     },
     {
-        itemName: 'Sprite-100ml',
-        forSale: true,
-        forStock: true,
-        category: 'Fruit Drinks',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 10
-        }]
+        vendorName: 'vgt',
+        vendorAddress: 'dfsdf',
+        vendorPhone: 0
     },
     {
-        itemName: 'Crush',
-        forSale: true,
-        forStock: true,
-        category: 'Smoke',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 10
-        },
-        {
-            unitName: 'Box',
-            factor: 20,
-            costPrice: 0,
-            salePrice: 100
-        }]
-    },
-    {
-        itemName: 'PaperBoat-Litchee',
-        forSale: true,
-        forStock: true,
-        category: 'Fruit Drinks',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 10
-        }]
-    },
-    {
-        itemName: 'PaperBoat-Apple',
-        forSale: true,
-        forStock: true,
-        category: 'Fruit Drinks',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 10
-        }]
-    },
-    {
-        itemName: 'PaperBoat-Mango',
-        forSale: true,
-        forStock: true,
-        category: 'Fruit Drinks',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 10
-        }]
-    },
-    {
-        itemName: 'PaperBoat-Mixed Fruit',
-        forSale: true,
-        forStock: true,
-        category: 'Fruit Drinks',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 10
-        }]
-    },
-    {
-        itemName: 'GoldFlake',
-        forSale: true,
-        forStock: true,
-        category: 'Cigarretes',
-        unit: [{
-            unitName: 'pcs',
-            factor: 1,
-            costPrice: 0,
-            salePrice: 10
-        }]
+        vendorName: 'Retail',
+        vendorAddress: 'dfsdf',
+        vendorPhone: 0
     }
 ]

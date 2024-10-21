@@ -6,18 +6,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import CartModal from "@/components/CartModal";
 import supabase from "@/utils/supabase";
 import { useToast } from "@/hooks/use-toast";
-import SalesPaymentComponent from "../components/SalesPaymentComponent";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Link } from "react-router-dom";
 import { LoaderIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PurchasePaymentComponent from "@/components/PurchasePaymentComponent";
 
-function SalesScreen() {
+function PurchaseScreen() {
 
     const { toast } = useToast()
 
     // const [isPaymentMode, setIsPaymentMode] = useState(false)
     const [saleItems, setSaleItems] = useState<TInvoiceItems[] | undefined>(undefined)
+
+    //flag to enable payment screen
     const [paymentMode, setPaymentMode] = useState(false)
 
     const [items, setItems] = useState<TItems[] | undefined>(undefined)
@@ -89,12 +91,8 @@ function SalesScreen() {
     const updateItemUnit = (indexSales: number, indexItemUnit: number) => {
         let oldItems = saleItems
         if (oldItems) {
-            const unit = oldItems[indexSales].units
-            if(unit){
-                oldItems[indexSales].price = unit[indexItemUnit].salePrice
-                oldItems[indexSales].unit =  unit[indexItemUnit].unitName
-            }
-           
+            oldItems[indexSales].price = oldItems[indexSales].units[indexItemUnit].salePrice
+            oldItems[indexSales].unit = oldItems[indexSales].units[indexItemUnit].unitName
             // console.log(oldItems)
             setSaleItems(oldItems)
             forceUpdate()
@@ -181,19 +179,19 @@ function SalesScreen() {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbLink asChild>
-                                <Link to="/sales">Sales</Link>
+                                <Link to="/expenses">Expenses</Link>
                             </BreadcrumbLink>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbPage>New Sales</BreadcrumbPage>
+                                <BreadcrumbPage>New Expense</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
                 </div>
-                <div className="text-center text-xl">{paymentMode ? 'Payment' : 'Create Sales Bill'}</div>
+                <div className="text-center text-xl">{paymentMode ? 'Vendor Payment' : 'Create Purchase Bill'}</div>
             </section>
             <div className="mx-auto">{loading && <LoaderIcon className="animate-spin" />}</div>
-            {paymentMode && <SalesPaymentComponent cartDetails={saleItems} totalAmount={getTotalBilledAmount()} setPaymentMode={(paymentMode) => setPaymentMode(paymentMode)} />}
+            {paymentMode && <PurchasePaymentComponent cartDetails={saleItems} totalAmount={getTotalBilledAmount()} setPaymentMode={(paymentMode) => setPaymentMode(paymentMode)} />}
             {!paymentMode &&
                 <div className="grid grid-rows-2 gap-2 w-full mx-auto  mb-5">
                     <div className="grid grid-cols-2 gap-1 items-center">
@@ -227,7 +225,7 @@ function SalesScreen() {
             }
             {!paymentMode && itemList && itemList.map((item, index) => {
                 return <div key={index} className="flex flex-col mb-2">
-                    <ItemComponent item={item} addItem={addItem} index={index + 1} typeScreen='Sales' />
+                    <ItemComponent item={item} addItem={addItem} index={index + 1} typeScreen='Purchase' />
                 </div>
             })}
 
@@ -235,4 +233,4 @@ function SalesScreen() {
         </div >
     )
 }
-export default SalesScreen
+export default PurchaseScreen
