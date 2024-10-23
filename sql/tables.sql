@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS public."itemUnits"
     created_at timestamp with time zone NOT NULL DEFAULT now(),
     created_by uuid NOT NULL DEFAULT auth.uid(),
     updated_at time with time zone,
-    updated_by timestamp with time zone,
+    updated_by uuid,
     CONSTRAINT "itemUnits_pkey" PRIMARY KEY (id)
 );
 
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS public.items
     created_at timestamp with time zone NOT NULL DEFAULT now(),
     created_by uuid DEFAULT auth.uid(),
     updated_at timestamp with time zone,
-    updated_by uuid DEFAULT gen_random_uuid(),
+    updated_by uuid,
     CONSTRAINT items_pkey PRIMARY KEY (id),
     CONSTRAINT "items_itemName_key" UNIQUE ("itemName")
 );
