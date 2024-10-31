@@ -17,7 +17,7 @@ export default function SiteHeader(session: { session: Session | null }) {
     
     return (
 
-        <header className="flex items-center justify-between px-2 border-b-2">
+        <header className="flex items-center  px-2 border-b-2   md:justify-center">
             <div className="mr-1 my-2 w-10  ">
                 <Avatar >
                     <AvatarImage src={session.session?.user.user_metadata.picture} className="rounded-full" />
@@ -74,45 +74,21 @@ export default function SiteHeader(session: { session: Session | null }) {
                         </MenubarItem>
                     </MenubarContent>
                 </MenubarMenu>
+                <MenubarMenu>
+                    <MenubarTrigger>Stock</MenubarTrigger>
+                    <MenubarContent>
+                        <MenubarItem>
+                        <Link to="/inventory/new">New Stock entry</Link> 
+                        </MenubarItem>
+                        <MenubarSeparator />
+                        <MenubarItem>
+                        <Link to="/inventory">Stock List</Link>
+                        </MenubarItem>
+                    </MenubarContent>
+                </MenubarMenu>
                
             </Menubar>
-            <div className="flex h-14 items-center px-4">
-                {/*    
-                <Sheet open={open} onOpenChange={setOpen}>
-
-                    <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="">
-                            <MenuIcon />
-                        </Button>
-                    </SheetTrigger>
-
-                    <SheetContent side="left">
-                        <SheetHeader className="border-b-2">
-                            <SheetTitle>Welcome {session.session?.user.user_metadata.full_name}</SheetTitle>
-                            <SheetDescription>
-                                Enjoy your day!
-                            </SheetDescription>
-                        </SheetHeader>
-                        <div className="flex flex-col items-start">
-
-                            {menuItems.map((item, index) => (
-                                <Button
-                                    key={index}
-                                    variant="link"
-                                    onClick={() => {
-                                        setOpen(false);
-                                    }}
-                                >
-                                    <Link to={item.url}>{item.label}</Link>
-                                </Button>
-                            ))}
-                        </div>
-                    </SheetContent>
-                </Sheet> */}
-
-                {/* <div className="mx-auto">My Store</div> */}
-
-            </div>
+           
         </header>
     );
 }
